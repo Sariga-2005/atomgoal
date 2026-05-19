@@ -32,7 +32,7 @@ function PageLoader() {
 function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode; allowedRoles?: string[] }) {
   const { user, isLoading } = useAuth();
   if (isLoading) return <PageLoader />;
-  if (!user) return <Navigate to="/login" replace />;
+  if (!user) return <Navigate to="/" replace />;
   if (allowedRoles && !allowedRoles.includes(user.role)) return <Navigate to="/unauthorized" replace />;
   return <>{children}</>;
 }
@@ -40,11 +40,11 @@ function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode;
 function RoleBasedHome() {
   const { user, isLoading } = useAuth();
   if (isLoading) return <PageLoader />;
-  if (!user) return <Navigate to="/login" replace />;
+  if (!user) return <Navigate to="/" replace />;
   if (user.role === "employee") return <EmployeeDashboard />;
   if (user.role === "manager") return <TeamDashboard />;
   if (user.role === "admin") return <AdminDashboard />;
-  return <Navigate to="/login" replace />;
+  return <Navigate to="/" replace />;
 }
 
 export default function App() {
@@ -55,10 +55,13 @@ export default function App() {
           <BrowserRouter>
             <Suspense fallback={<PageLoader />}>
               <Routes>
+                {/* Public: Login page is the landing page */}
+                <Route path="/" element={<Login />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/unauthorized" element={<Unauthorized />} />
-                
-                <Route path="/" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
+
+                {/* Protected Dashboard Routes */}
+                <Route path="/dashboard" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
                   <Route index element={<RoleBasedHome />} />
 
                   {/* Employee Routes */}

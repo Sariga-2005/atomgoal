@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import {
   Target, Mail, Lock, UserPlus, Sparkles, ChevronRight, HelpCircle,
-  Database, AlertTriangle, Play
+  Database, AlertTriangle, Play, ArrowRight
 } from "lucide-react";
 
 export default function Login() {
@@ -33,11 +33,7 @@ export default function Login() {
   const [signUpDept, setSignUpDept] = useState("Engineering");
   const [signUpManagerId, setSignUpManagerId] = useState("");
 
-  useEffect(() => {
-    if (user) {
-      navigate("/");
-    }
-  }, [user, navigate]);
+  // No auto-redirect — always show the login/landing page first
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,6 +47,7 @@ export default function Login() {
       const password = signInPassword || "Demo123";
       await login(email, password);
       toast("Logged in successfully! Welcome to AtomGoal.", "success");
+      navigate("/dashboard");
     } catch (err: any) {
       toast(err?.message || "Invalid credentials. Try employee@demo.com with Demo123", "error");
     } finally {
@@ -82,6 +79,7 @@ export default function Login() {
     try {
       await signUp(newProfile, signUpPassword);
       toast("Account registered successfully! Welcome to AtomGoal.", "success");
+      navigate("/dashboard");
     } catch (err: any) {
       toast(err?.message || "Failed to create account. Try signing in with demo accounts", "error");
     } finally {
@@ -96,6 +94,7 @@ export default function Login() {
     try {
       await login(email, "Demo123");
       toast(`Signed in successfully as ${email.split("@")[0]}`, "success");
+      navigate("/dashboard");
     } catch (err) {
       toast("Quick sign-in failed", "error");
     } finally {
@@ -192,6 +191,26 @@ export default function Login() {
       {/* Right side: Login / Signup Form Area */}
       <div className="w-full md:w-1/2 flex flex-col items-center justify-center p-6 md:p-12 relative z-10">
         <div className="w-full max-w-md space-y-6">
+          {/* Already Authenticated Banner */}
+          {user && (
+            <div className="p-5 rounded-2xl border border-emerald-900/60 bg-emerald-950/30 backdrop-blur-xl space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-emerald-500/15 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+                  <Target className="w-4.5 h-4.5" />
+                </div>
+                <div>
+                  <p className="text-xs font-extrabold text-emerald-300 uppercase tracking-wider">Welcome back, {user.name}</p>
+                  <p className="text-[10px] text-emerald-500/80">{user.role} • {user.department}</p>
+                </div>
+              </div>
+              <Button
+                onClick={() => navigate("/dashboard")}
+                className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl h-10 text-xs uppercase tracking-widest shadow-lg shadow-emerald-600/15 cursor-pointer transition-all gap-2"
+              >
+                Go to Dashboard <ArrowRight className="w-4 h-4" />
+              </Button>
+            </div>
+          )}
           {/* Card Container */}
           <Card className="border border-slate-900 bg-slate-950/40 backdrop-blur-2xl shadow-2xl rounded-2xl overflow-hidden">
             {/* Tabs Header */}

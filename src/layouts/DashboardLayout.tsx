@@ -70,37 +70,37 @@ export default function DashboardLayout() {
   const navItems: { name: string; path: string; icon: React.ReactNode }[] = [];
   if (user.role === "employee") {
     navItems.push(
-      { name: "Overview Hub", path: "/", icon: <LayoutDashboard className="w-4 h-4" /> },
-      { name: "My Objectives", path: "/goals", icon: <Target className="w-4 h-4" /> },
-      { name: "Quarterly Check-ins", path: "/checkins", icon: <CheckSquare className="w-4 h-4" /> },
+      { name: "Overview Hub", path: "/dashboard", icon: <LayoutDashboard className="w-4 h-4" /> },
+      { name: "Goal Sheet", path: "/dashboard/goals", icon: <Target className="w-4 h-4" /> },
+      { name: "Quarterly Check-ins", path: "/dashboard/checkins", icon: <CheckSquare className="w-4 h-4" /> },
     );
   } else if (user.role === "manager") {
     navItems.push(
-      { name: "Team Overview", path: "/", icon: <LayoutDashboard className="w-4 h-4" /> },
-      { name: "Goal Approvals", path: "/approvals", icon: <CheckSquare className="w-4 h-4" /> },
-      { name: "Platform Analytics", path: "/analytics", icon: <BarChart3 className="w-4 h-4" /> },
+      { name: "Team Overview", path: "/dashboard", icon: <LayoutDashboard className="w-4 h-4" /> },
+      { name: "Goal Approvals", path: "/dashboard/approvals", icon: <CheckSquare className="w-4 h-4" /> },
+      { name: "Platform Analytics", path: "/dashboard/analytics", icon: <BarChart3 className="w-4 h-4" /> },
     );
   } else if (user.role === "admin") {
     navItems.push(
-      { name: "Enterprise Hub", path: "/", icon: <Activity className="w-4 h-4" /> },
-      { name: "Team Directory", path: "/employees", icon: <Users className="w-4 h-4" /> },
-      { name: "Shared Objectives", path: "/shared-goals", icon: <Share2 className="w-4 h-4" /> },
-      { name: "Governance Audits", path: "/audit", icon: <Settings className="w-4 h-4" /> },
-      { name: "Corporate Analytics", path: "/analytics", icon: <BarChart3 className="w-4 h-4" /> },
+      { name: "Enterprise Hub", path: "/dashboard", icon: <Activity className="w-4 h-4" /> },
+      { name: "Team Directory", path: "/dashboard/employees", icon: <Users className="w-4 h-4" /> },
+      { name: "Shared Objectives", path: "/dashboard/shared-goals", icon: <Share2 className="w-4 h-4" /> },
+      { name: "Governance Audits", path: "/dashboard/audit", icon: <Settings className="w-4 h-4" /> },
+      { name: "Corporate Analytics", path: "/dashboard/analytics", icon: <BarChart3 className="w-4 h-4" /> },
     );
   }
 
   // Breadcrumbs Mapping
   const getBreadcrumbs = () => {
     const path = location.pathname;
-    if (path === "/") return ["Workspace", "Overview"];
-    if (path === "/goals") return ["Employee", "Objective Sheets"];
-    if (path === "/checkins") return ["Employee", "Quarterly Check-ins"];
-    if (path === "/approvals") return ["Manager", "Goal Sheet Approvals"];
-    if (path === "/analytics") return ["Executive Insights", "Core Analytics"];
-    if (path === "/employees") return ["HR Directory", "Employee Roster"];
-    if (path === "/shared-goals") return ["Strategic Alignment", "Shared Corporate Goals"];
-    if (path === "/audit") return ["Information Security", "System Audit logs"];
+    if (path === "/dashboard") return ["Workspace", "Overview"];
+    if (path === "/dashboard/goals") return ["Employee", "Goal Sheet Management"];
+    if (path === "/dashboard/checkins") return ["Employee", "Quarterly Check-ins"];
+    if (path === "/dashboard/approvals") return ["Manager", "Goal Sheet Approvals"];
+    if (path === "/dashboard/analytics") return ["Executive Insights", "Core Analytics"];
+    if (path === "/dashboard/employees") return ["HR Directory", "Employee Roster"];
+    if (path === "/dashboard/shared-goals") return ["Strategic Alignment", "Shared Corporate Goals"];
+    if (path === "/dashboard/audit") return ["Information Security", "System Audit logs"];
     return ["Workspace", "Directory"];
   };
 

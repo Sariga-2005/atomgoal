@@ -1,6 +1,6 @@
 import { Goal, QuarterlyCheckin, SharedGoal } from "@/types";
 import { db, runWithRetry } from "@/lib/firebase";
-import { collection, doc, getDocs, setDoc, query, where, writeBatch } from "firebase/firestore";
+import { collection, doc, getDocs, setDoc, query, where, writeBatch, deleteDoc } from "firebase/firestore";
 
 // ─── Seed data (written to Firestore on first run only) ───────────────────────
 const SEED_GOALS: Goal[] = [
@@ -163,6 +163,11 @@ export const goalService = {
       batch.set(doc(db, "goals", g.id), g);
     });
     await runWithRetry(() => batch.commit());
+  },
+
+  async deleteGoal(goalId: string): Promise<void> {
+    if (!goalId) return;
+    await runWithRetry(() => deleteDoc(doc(db, "goals", goalId)));
   },
 
   async getCheckins(goalId?: string): Promise<QuarterlyCheckin[]> {

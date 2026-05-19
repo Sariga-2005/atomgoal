@@ -47,7 +47,7 @@ export default function EmployeeDashboard() {
           <h1 className="text-3xl font-bold tracking-tight text-slate-900">Welcome back, {user?.name?.split(" ")[0]}</h1>
           <p className="text-slate-500 mt-1">Here's your performance overview for the current cycle.</p>
         </div>
-        <Link to="/goals">
+        <Link to="/dashboard/goals">
           <Button className="gap-2 shadow-md hover:shadow-lg transition-all h-10 px-6 rounded-full bg-blue-600 hover:bg-blue-700">
             <Target className="w-4 h-4" /> Goal Sheet <ArrowRight className="w-4 h-4" />
           </Button>
@@ -109,7 +109,7 @@ export default function EmployeeDashboard() {
             </div>
             <h3 className="text-lg font-semibold text-slate-900 mb-2">No Goals Set Yet</h3>
             <p className="text-slate-500 max-w-sm mb-6">Alignment starts with clear objectives. Create your goal sheet to start tracking performance.</p>
-            <Link to="/goals"><Button className="rounded-full px-6 bg-slate-900 text-white hover:bg-slate-800">Start Planning</Button></Link>
+            <Link to="/dashboard/goals"><Button className="rounded-full px-6 bg-slate-900 text-white hover:bg-slate-800">Start Planning</Button></Link>
           </CardContent>
         </Card>
       ) : (
