@@ -1,5 +1,7 @@
 # AtomGoal Architecture
 
+![AtomGoal Architecture Diagram](./public/architecture.png)
+
 **AtomGoal - Enterprise Goal Setting & Performance Tracking Portal**
 Modern SaaS Architecture built with React, Firebase, and Realtime Analytics.
 
