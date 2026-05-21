@@ -199,13 +199,12 @@ export default function GoalCreation() {
 
   const handleSaveDraft = async () => {
     if (isEditingAny) {
-      toast("Complete editing your active goal card before saving draft.", "info");
+      toast("Please finalize editing your active goal card.", "info");
       return;
     }
-    const drafts = goals.map(g => ({ ...g, status: "Draft" as const }));
+    // Don't arbitrarily overwrite statuses to "Draft". Keep existing statuses.
     try {
-      await goalService.saveGoals(drafts);
-      setGoals(drafts);
+      await goalService.saveGoals(goals);
       toast("Goal sheet draft successfully saved to Cloud!", "success");
     } catch (e) {
       toast("Failed to save draft", "error");
@@ -662,8 +661,8 @@ export default function GoalCreation() {
                           </div>
                         )}
 
-                        {/* Hover Quick Edit / Delete Overlay if editable */}
-                        {!isLocked && (
+                        {/* Floating Action Buttons (Only for Draft goals) */}
+                        {goal.status === "Draft" && (
                           <div className="absolute top-5 right-5 flex items-center gap-1 bg-white/80 backdrop-blur-sm shadow-sm rounded-lg p-0.5 border border-slate-100">
                             <Button
                               variant="ghost"
