@@ -13,6 +13,7 @@ import {
   Calendar, Layers, Star, AlertTriangle, CheckCircle2, Flame
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { useAnalyticsData } from "@/lib/useAnalyticsData";
 
 const THEME_COLORS = {
   blue: "#2563EB",
@@ -38,6 +39,7 @@ export default function Analytics() {
   const [goals, setGoals] = useState<Goal[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"executive" | "operational" | "alignment">("executive");
+  const analyticsData = useAnalyticsData();
 
   const fetchGoals = async () => {
     setIsLoading(true);
@@ -123,12 +125,7 @@ export default function Analytics() {
   }, [goals]);
 
   // 4. Quarterly Trends (QoQ Target vs Achievement)
-  const quarterlyTrendData = [
-    { name: "Q1", Target: 70, Achievement: 65, efficiency: 92 },
-    { name: "Q2 (Current)", Target: 85, Achievement: 78, efficiency: 91 },
-    { name: "Q3 (Proj)", Target: 90, Achievement: 84, efficiency: 93 },
-    { name: "Q4 (Proj)", Target: 100, Achievement: 95, efficiency: 95 }
-  ];
+  const quarterlyTrendData = analyticsData.qoqTrend;
 
   // 5. Department Comparisons
   const departmentData = useMemo(() => {

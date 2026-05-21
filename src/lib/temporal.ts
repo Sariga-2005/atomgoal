@@ -1,67 +1,77 @@
-/**
- * Temporal utilities for enforcing quarterly check‑in windows.
- * Currently provides a simple helper that determines whether a given
- * Date falls within the current calendar quarter. This can be used
- * to restrict actions (e.g., check‑in submissions) to the active
- * quarter only.
- */
+// src/lib/temporal.ts
+// Single-responsibility temporal utilities for window enforcement.
+// getCurrentActiveWindow is the SINGLE SOURCE OF TRUTH from progress.ts.
+
+import { getCurrentActiveWindow } from "@/lib/progress";
+
+// Re-export so consumers can import from either file
+export { getCurrentActiveWindow };
 
 /**
- * Returns the quarter number (1‑4) for a given date.
- * @param date Date to evaluate.
+ * Returns the quarter number (1–4) for a given date.
  */
 export function getQuarter(date: Date): number {
-  // JavaScript months are 0‑based (0 = January).
   return Math.floor(date.getMonth() / 3) + 1;
 }
 
-// Determine current active phase/quarter based on month
-export function getCurrentActiveWindow() {
-  const now = new Date();
-  const month = now.getMonth() + 1; // 1-12
-  // Define windows: GoalSetting in first month of each quarter, Checkin in second month, otherwise closed.
-  const quarter = Math.floor((month - 1) / 3) + 1; // 1-4
-  const monthInQuarter = ((month - 1) % 3) + 1; // 1,2,3
-  if (monthInQuarter === 1) {
-    // Goal Setting phase
-    return { phase: "GoalSetting", quarter: null, isOpen: true };
-  } else if (monthInQuarter === 2) {
-    // Check-in phase for the current quarter
-    return { phase: "Checkin", quarter: `Q${quarter}`, isOpen: true };
-  }
-  // All other months (third month of quarter) are closed
-  return { phase: "Closed", quarter: null, isOpen: false };
-}
-
 /**
- * Determines whether the provided date is within the current
- * calendar quarter. The function assumes the quarterly windows
- * are the full calendar quarters (Q1: Jan‑Mar, Q2: Apr‑Jun, Q3:
- * Jul‑Sep, Q4: Oct‑Dec). Adjust the logic if you need a more
- * restrictive window (e.g., only the first week of the quarter).
- *
- * @param date Date to test. If omitted, the current date/time is used.
- * @returns true if the date is within the active quarter, false otherwise.
+ * Returns true if the given date falls within the current calendar quarter.
  */
 export function isWithinQuarter(date: Date = new Date()): boolean {
   const now = new Date();
-  const currentQuarter = getQuarter(now);
-  const targetQuarter = getQuarter(date);
-  return currentQuarter === targetQuarter;
+  return getQuarter(now) === getQuarter(date);
 }
-// Returns info about the next open window (goal setting or check‑in) based on the current date.
-export function getNextOpenWindow(): { phase: string; quarter: string | null; isOpen: boolean } {
-  const now = new Date();
-  const month = now.getMonth() + 1; // 1‑12
-  const quarter = Math.floor((month - 1) / 3) + 1; // 1‑4
-  const monthInQuarter = ((month - 1) % 3) + 1; // 1,2,3
 
-  // If currently in GoalSetting (monthInQuarter === 1), the next open window is the Checkin phase of the same quarter.
-  if (monthInQuarter === 1) {
-    return { phase: "Checkin", quarter: `Q${quarter}`, isOpen: true };
+/**
+ * Returns true only if the current phase is "GoalSetting".
+ * Use this to gate goal creation / submission.
+ */
+export function isGoalCreationAllowed(): boolean {
+  const win = getCurrentActiveWindow();
+  return win.phase === "GoalSetting" && win.isOpen;
+}
+
+/**
+ * Returns true only if the current phase is "Checkin" AND the
+ * active quarter matches the requested quarter.
+ */
+export function isCheckinAllowed(quarter: string): boolean {
+  const win = getCurrentActiveWindow();
+  return win.phase === "Checkin" && win.isOpen && win.quarter === quarter;
+}
+
+/**
+ * Returns a human-readable description of the next open window.
+ * Useful for tooltip / banner messages.
+ */
+export function getNextOpenWindow(): { label: string; opensIn: string } {
+  const month = new Date().getMonth() + 1; // 1-12
+
+  // Window schedule (from progress.ts):
+  //   Apr-May  → GoalSetting
+  //   Jul      → Q1 Checkin
+  //   Oct      → Q2 Checkin
+  //   Jan      → Q3 Checkin
+  //   Mar-Apr  → Q4 Checkin
+  //   Other    → Closed
+
+  const schedule: { months: number[]; label: string; opensIn: string }[] = [
+    { months: [1],    label: "Q3 Check-in",   opensIn: "January" },
+    { months: [3, 4], label: "Q4 Check-in",   opensIn: "March" },
+    { months: [4, 5], label: "Goal Setting",  opensIn: "April" },
+    { months: [7],    label: "Q1 Check-in",   opensIn: "July" },
+    { months: [10],   label: "Q2 Check-in",   opensIn: "October" },
+  ];
+
+  // Find the NEXT window whose first month is strictly after the current month
+  const upcoming = schedule
+    .filter(w => w.months[0] > month)
+    .sort((a, b) => a.months[0] - b.months[0]);
+
+  if (upcoming.length > 0) {
+    return { label: upcoming[0].label, opensIn: upcoming[0].opensIn };
   }
-  // If currently in Checkin (monthInQuarter === 2) or Closed (monthInQuarter === 3),
-  // the next open window is the GoalSetting phase of the next quarter.
-  const nextQuarter = quarter % 4 + 1; // wrap around to 1 after Q4
-  return { phase: "GoalSetting", quarter: null, isOpen: true };
+
+  // Wrap around to next year → first window is Jan (Q3 Check-in)
+  return { label: "Q3 Check-in", opensIn: "January" };
 }

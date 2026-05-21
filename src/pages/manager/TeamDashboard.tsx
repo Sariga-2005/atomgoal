@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   Check, X, MessageSquare, Users, Clock, CheckCircle2, AlertTriangle,
-  FolderLock, ListTodo, Star, Edit3, ArrowRight, ShieldCheck, HelpCircle
+  FolderLock, ListTodo, Star, Edit3, ArrowRight, ShieldCheck, HelpCircle, Download
 } from "lucide-react";
 
 export default function TeamDashboard() {
@@ -22,6 +22,7 @@ export default function TeamDashboard() {
   const [goals, setGoals] = useState<Goal[]>([]);
   const [checkins, setCheckins] = useState<QuarterlyCheckin[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isExporting, setIsExporting] = useState(false);
 
   // Filters
   const [filter, setFilter] = useState<string>("all");
@@ -280,6 +281,87 @@ export default function TeamDashboard() {
     setEditTarget(goal.target);
   };
 
+  // ─── CSV Export ────────────────────────────────────────────────────────────
+  const exportAchievementReport = async () => {
+    setIsExporting(true);
+    toast("Generating achievement report…", "info");
+    try {
+      const QUARTERS = ["Q1", "Q2", "Q3", "Q4"] as const;
+
+      // Build rows: one per goal
+      const rows: string[][] = [];
+      for (const goal of goals) {
+        const emp = team.find(u => u.id === goal.userId) || allUsers.find(u => u.id === goal.userId);
+        const goalCheckins = checkins.filter(c => c.goalId === goal.id);
+
+        const qAchievements: Record<string, string> = { Q1: "", Q2: "", Q3: "", Q4: "" };
+        goalCheckins.forEach(c => { qAchievements[c.quarter] = c.achievement; });
+
+        const latestAch = goal.achievement || "";
+        const score = computeProgressScore(
+          goal.unit,
+          latestAch,
+          goal.target,
+          { direction: goal.scoringDirection }
+        );
+
+        rows.push([
+          emp?.name || "Unknown",
+          emp?.department || "",
+          goal.title,
+          goal.thrustArea,
+          goal.unit,
+          goal.scoringDirection || "min",
+          goal.target,
+          qAchievements.Q1,
+          qAchievements.Q2,
+          qAchievements.Q3,
+          qAchievements.Q4,
+          `${Math.round(score)}`,
+          goal.status,
+        ]);
+      }
+
+      // Summary row (averages for numeric columns)
+      const avgScore = rows.length > 0
+        ? Math.round(rows.reduce((s, r) => s + (parseFloat(r[11]) || 0), 0) / rows.length)
+        : 0;
+      rows.push([
+        "AVERAGE", "", "", "", "", "", "",
+        "", "", "", "",
+        `${avgScore}`,
+        "",
+      ]);
+
+      const headers = [
+        "Employee Name", "Department", "Goal Title", "Thrust Area",
+        "UoM", "Scoring Direction", "Target",
+        "Q1 Achievement", "Q2 Achievement", "Q3 Achievement", "Q4 Achievement",
+        "Progress Score %", "Status",
+      ];
+
+      const escape = (v: string) => `"${v.replace(/"/g, '""')}"`;
+      const csv = [headers.map(escape).join(","), ...rows.map(r => r.map(escape).join(","))].join("\n");
+
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "AtomGoal_Achievement_Report.csv";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast("Achievement report downloaded!", "success");
+    } catch (e) {
+      console.error(e);
+      toast("Failed to export report", "error");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   const pendingGoalsCount = goals.filter(g => g.status === "Pending Approval").length;
   const pendingCheckinsCount = checkins.filter(c => c.status === "Pending Review").length;
 
@@ -293,6 +375,14 @@ export default function TeamDashboard() {
           </h1>
           <p className="text-slate-500 mt-1 text-sm">Audit goal sheet layouts, sign off target checkpoints, and review team achievements.</p>
         </div>
+        <Button
+          onClick={exportAchievementReport}
+          disabled={isExporting || goals.length === 0}
+          className="gap-2 font-bold shadow-md hover:shadow-lg transition-all h-11 px-5 rounded-xl text-xs uppercase tracking-wider bg-slate-900 hover:bg-slate-800 text-white cursor-pointer disabled:opacity-50"
+        >
+          <Download className="w-4 h-4" />
+          {isExporting ? "Exporting…" : "Export Achievement Report"}
+        </Button>
       </div>
 
       {/* KPI Cards */}
@@ -446,7 +536,7 @@ export default function TeamDashboard() {
                                 <>
                                   {goal.target} {goal.unit}
                                   {goal.achievement && (() => {
-                                    const score = computeProgressScore(goal.unit as any, goal.achievement, goal.target, { direction: (goal as any).scoringDirection as any });
+                                    const score = computeProgressScore(goal.unit, goal.achievement, goal.target, { direction: goal.scoringDirection });
                                     const colors = getScoreColor(score);
                                     return (
                                       <span className={`ml-2 text-xs font-bold px-2 py-0.5 rounded ${colors.bg} ${colors.text} border ${colors.border}`}>Score {score}%</span>

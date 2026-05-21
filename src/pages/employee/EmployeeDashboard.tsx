@@ -167,7 +167,7 @@ export default function EmployeeDashboard() {
                       <div className="flex items-center gap-2 mt-4 pt-2 border-t border-slate-50">
                         <span className="text-xs font-semibold text-slate-900">Current: {g.achievement}</span>
                         {(() => {
-                          const score = computeProgressScore(g.unit as any, g.achievement, g.target, { direction: (g as any).scoringDirection as any });
+                          const score = computeProgressScore(g.unit, g.achievement, g.target, { direction: g.scoringDirection });
                           const colors = getScoreColor(score);
                           return (
                             <span className={`ml-2 text-xs font-bold px-2 py-0.5 rounded ${colors.bg} ${colors.text} border ${colors.border}`}>Score {score}%</span>

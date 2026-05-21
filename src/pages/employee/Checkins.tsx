@@ -149,7 +149,7 @@ export default function Checkins() {
             onClick={handleSave}
             className="gap-2"
             disabled={!windowInfo.isOpen}
-            title={!windowInfo.isOpen ? `Check‑in window is closed. Next window: ${nextWindow.quarter ?? "soon"}` : "Submit your check‑in"}
+            title={!windowInfo.isOpen ? `Check‑in window is closed. Next: ${nextWindow.label} (${nextWindow.opensIn})` : "Submit your check‑in"}
           >
             <Save className="w-4 h-4" /> Save Check-in
           </Button>
@@ -178,7 +178,7 @@ export default function Checkins() {
                     {/* Progress Score Badge */}
                     {d.achievement && (
                       (() => {
-                        const score = computeProgressScore(g.unit, d.achievement, g.target, { direction: g.scoringDirection as any, deadline: g.deadline ? new Date(g.deadline) : undefined });
+                        const score = computeProgressScore(g.unit, d.achievement, g.target, { direction: g.scoringDirection, deadline: g.deadline ? new Date(g.deadline) : undefined });
                         const colors = getScoreColor(score);
                         return (
                           <span className={`${colors.bg} ${colors.text} ${colors.border} border px-2 py-0.5 text-xs font-medium rounded ml-2`}>Score: {Math.round(score)}%</span>

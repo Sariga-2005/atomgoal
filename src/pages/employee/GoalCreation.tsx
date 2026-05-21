@@ -15,8 +15,9 @@ import {
   PlusCircle, Trash2, Save, Send, Lock, CheckCircle2,
   AlertTriangle, Edit2, X, Check, HelpCircle, Info,
   Sparkles, TrendingUp, Plus, FileText, CheckSquare, Unlock,
-  LockKeyhole, AlertCircle, RefreshCw, Target
+  LockKeyhole, AlertCircle, RefreshCw, Target, CalendarClock
 } from "lucide-react";
+import { getCurrentActiveWindow, isGoalCreationAllowed, getNextOpenWindow } from "@/lib/temporal";
 
 function emptyGoal(userId: string, managerId: string): Goal {
   return {
@@ -37,6 +38,8 @@ export default function GoalCreation() {
   const [goals, setGoals] = useState<Goal[]>([]);
   const [confirmSubmit, setConfirmSubmit] = useState(false);
   const [loading, setLoading] = useState(true);
+  const goalWindowOpen = isGoalCreationAllowed();
+  const nextWindow = getNextOpenWindow();
   
   // High-fidelity state management for inline card edits
   const [editingGoalId, setEditingGoalId] = useState<string | null>(null);
@@ -256,6 +259,27 @@ export default function GoalCreation() {
 
   return (
     <div className="space-y-8 animate-slide-in pb-24">
+      {/* ── Window Enforcement Banner ── */}
+      {goalWindowOpen ? (
+        <Card className="border-0 shadow-sm ring-1 ring-emerald-200 bg-emerald-50/40 overflow-hidden">
+          <CardContent className="p-4 flex items-center gap-3">
+            <CalendarClock className="w-5 h-5 text-emerald-600 shrink-0" />
+            <p className="text-xs text-emerald-800 font-semibold">
+              Goal setting window is <strong>open</strong> (April–May). You can create and submit goals.
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card className="border-0 shadow-sm ring-1 ring-amber-200 bg-amber-50/40 overflow-hidden">
+          <CardContent className="p-4 flex items-center gap-3">
+            <CalendarClock className="w-5 h-5 text-amber-600 shrink-0" />
+            <p className="text-xs text-amber-800 font-semibold">
+              Goal setting window is <strong>closed</strong>. Goals can only be submitted in April–May. You can save drafts but cannot submit for approval.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Dynamic Visual Status Banners */}
       {sheetStatus === "Approved" && (
         <Card className="border-0 shadow-sm ring-1 ring-emerald-200 bg-emerald-50/40 overflow-hidden">
@@ -782,10 +806,11 @@ export default function GoalCreation() {
               </Button>
               
               <Button
-                disabled={isLocked || !isValid || isEditingAny}
+                disabled={isLocked || !isValid || isEditingAny || !goalWindowOpen}
                 onClick={() => setConfirmSubmit(true)}
+                title={!goalWindowOpen ? "Goal submission opens in April" : undefined}
                 className={`w-full gap-2 rounded-xl text-xs font-bold uppercase tracking-wider h-11 text-white shadow-md transition-all cursor-pointer ${
-                  isLocked || !isValid || isEditingAny
+                  isLocked || !isValid || isEditingAny || !goalWindowOpen
                     ? "bg-slate-200 text-slate-400 cursor-not-allowed shadow-none border border-slate-100"
                     : "bg-blue-600 hover:bg-blue-700 shadow-blue-500/10 hover:shadow-lg hover:shadow-blue-500/15"
                 }`}
