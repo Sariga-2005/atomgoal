@@ -65,7 +65,7 @@ export default function GoalCreation() {
     fetchExisting();
   }, [user]);
 
-  const isLocked = goals.some(g => g.status === "Pending Approval" || g.status === "Approved");
+  const isLocked = goals.length > 0 && goals.every(g => g.status === "Pending Approval" || g.status === "Approved");
   const isRejected = goals.some(g => g.status === "Rejected");
   const totalWeightage = goals
     .filter(g => g.status !== "Rejected")
@@ -218,10 +218,18 @@ export default function GoalCreation() {
       toast("Please finalize editing your active goal card.", "info");
       return;
     }
-    const submitted = goals.map(g => ({ ...g, status: "Pending Approval" as const, locked: true }));
+    
+    // Only transition Draft goals to Pending Approval. Keep Approved/Rejected/Pending as they are.
+    const submitted = goals.map(g => 
+      g.status === "Draft" ? { ...g, status: "Pending Approval" as const, locked: true } : g
+    );
+    
+    // Identify which goals actually changed state for audit logging
+    const changedGoals = submitted.filter(g => goals.find(og => og.id === g.id)?.status === "Draft");
+
     try {
       await goalService.saveGoals(submitted);
-      await Promise.all(submitted.map(g =>
+      await Promise.all(changedGoals.map(g =>
         auditService.addAuditLog({
           entityType: "goal", entityId: g.id, changedBy: user!.id,
           action: "SUBMIT_GOAL",
