@@ -10,16 +10,27 @@ import { Select } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { CheckSquare, Save } from "lucide-react";
+import { computeProgressScore, getScoreColor } from "@/lib/progress";
+import { getCurrentActiveWindow, getNextOpenWindow } from "@/lib/temporal";
 
 const QUARTERS = ["Q1", "Q2", "Q3", "Q4"] as const;
 
 export default function Checkins() {
   const { user } = useAuth();
+  const [windowInfo, setWindowInfo] = React.useState<{ phase: string; quarter: string | null; isOpen: boolean }>({ phase: "", quarter: null, isOpen: false });
   const { toast } = useToast();
   const [selectedQuarter, setSelectedQuarter] = useState<typeof QUARTERS[number]>("Q2");
+  const nextWindow = getNextOpenWindow();
   const [goals, setGoals] = useState<Goal[]>([]);
   const [checkinData, setCheckinData] = useState<Record<string, { achievement: string; progressStatus: ProgressStatus; comments: string }>>({});
   const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    // Determine active window on mount
+    const info = getCurrentActiveWindow();
+    setWindowInfo(info);
+    if (info.quarter) setSelectedQuarter(info.quarter as typeof QUARTERS[number]);
+  }, []);
 
   useEffect(() => {
     if (!user) return;
@@ -43,6 +54,10 @@ export default function Checkins() {
         console.error(e);
       } finally {
         setIsLoading(false);
+    // If window is closed, prevent further edits
+    if (!windowInfo.isOpen) {
+      toast("Check‑in window is closed. Submissions are disabled.", "error");
+    }
       }
     };
     fetchCheckinData();
@@ -56,6 +71,10 @@ export default function Checkins() {
   };
 
   const handleSave = async () => {
+    if (!windowInfo.isOpen) {
+      toast("Cannot submit: check‑in window is closed.", "error");
+      return;
+    }
     try {
       await Promise.all(goals.map(async g => {
         const d = checkinData[g.id];
@@ -123,15 +142,25 @@ export default function Checkins() {
           <p className="text-sm text-muted-foreground">Update your achievement and progress for each goal</p>
         </div>
         <div className="flex items-center gap-3">
-          <Select value={selectedQuarter} onChange={e => setSelectedQuarter(e.target.value as typeof QUARTERS[number])} className="w-24">
+          <Select value={selectedQuarter} onChange={e => setSelectedQuarter(e.target.value as typeof QUARTERS[number])} className="w-24" disabled={!windowInfo.isOpen}>
             {QUARTERS.map(q => <option key={q} value={q}>{q} {new Date().getFullYear()}</option>)}
           </Select>
-          <Button onClick={handleSave} className="gap-2">
+          <Button
+            onClick={handleSave}
+            className="gap-2"
+            disabled={!windowInfo.isOpen}
+            title={!windowInfo.isOpen ? `Check‑in window is closed. Next window: ${nextWindow.quarter ?? "soon"}` : "Submit your check‑in"}
+          >
             <Save className="w-4 h-4" /> Save Check-in
           </Button>
         </div>
       </div>
 
+      {!windowInfo.isOpen && (
+        <div className="p-4 mb-4 text-sm text-amber-800 bg-amber-100 border border-amber-200 rounded">
+          Check‑in window is currently closed. You can view existing entries but cannot submit new data.
+        </div>
+      )}
       <div className="space-y-4">
         {goals.map(g => {
           const d = checkinData[g.id] || { achievement: "", progressStatus: "Not Started", comments: "" };
@@ -146,6 +175,16 @@ export default function Checkins() {
                   <div className="text-right">
                     <Badge variant="outline" className="text-xs">{g.weightage}% weight</Badge>
                     <p className="text-xs text-muted-foreground mt-1">Target: {g.target} ({g.unit})</p>
+                    {/* Progress Score Badge */}
+                    {d.achievement && (
+                      (() => {
+                        const score = computeProgressScore(g.unit, d.achievement, g.target, { direction: g.scoringDirection as any, deadline: g.deadline ? new Date(g.deadline) : undefined });
+                        const colors = getScoreColor(score);
+                        return (
+                          <span className={`${colors.bg} ${colors.text} ${colors.border} border px-2 py-0.5 text-xs font-medium rounded ml-2`}>Score: {Math.round(score)}%</span>
+                        );
+                      })()
+                    )}
                   </div>
                 </div>
               </CardHeader>

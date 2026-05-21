@@ -21,6 +21,8 @@ export interface Goal {
   title: string;
   description: string;
   unit: UnitOfMeasurement;
+  scoringDirection?: "min" | "max"; // default "min"
+  deadline?: string; // ISO date for Timeline UoM
   target: string;
   weightage: number; // Percentage 10-100
   status: GoalStatus;

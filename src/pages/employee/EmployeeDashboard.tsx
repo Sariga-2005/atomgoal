@@ -6,6 +6,7 @@ import { Goal } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { computeProgressScore, getScoreColor } from "@/lib/progress";
 import { Progress } from "@/components/ui/progress";
 import { Target, ArrowRight, CheckCircle2, Clock, AlertCircle, TrendingUp } from "lucide-react";
 
@@ -160,8 +161,23 @@ export default function EmployeeDashboard() {
                       <span className="text-sm font-bold text-slate-900">{g.weightage}%</span>
                     </div>
                   </div>
-                  
-                  <div className="mt-4 bg-slate-50 rounded-lg p-3 flex items-center justify-between">
+          
+                  {g.achievement && (
+                    <>
+                      <div className="flex items-center gap-2 mt-4 pt-2 border-t border-slate-50">
+                        <span className="text-xs font-semibold text-slate-900">Current: {g.achievement}</span>
+                        {(() => {
+                          const score = computeProgressScore(g.unit as any, g.achievement, g.target, { direction: (g as any).scoringDirection as any });
+                          const colors = getScoreColor(score);
+                          return (
+                            <span className={`ml-2 text-xs font-bold px-2 py-0.5 rounded ${colors.bg} ${colors.text} border ${colors.border}`}>Score {score}%</span>
+                          );
+                        })()}
+                      </div>
+                    </>
+                  )}
+
+                  <div className="flex items-center justify-between pt-4 mt-2">
                     <div className="flex items-center gap-2">
                       {g.progressStatus === "Completed" ? <CheckCircle2 className="w-4 h-4 text-emerald-500" /> :
                        g.progressStatus === "On Track" ? <TrendingUp className="w-4 h-4 text-blue-500" /> :

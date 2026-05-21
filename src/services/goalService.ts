@@ -1,4 +1,5 @@
 import { Goal, QuarterlyCheckin, SharedGoal } from "@/types";
+import { isWithinQuarter } from "@/lib/temporal";
 import { db, runWithRetry } from "@/lib/firebase";
 import { collection, doc, getDocs, setDoc, query, where, writeBatch, deleteDoc } from "firebase/firestore";
 
@@ -194,6 +195,11 @@ export const goalService = {
   async saveCheckin(checkin: QuarterlyCheckin): Promise<void> {
     if (!checkin?.id || !checkin?.goalId || !checkin?.userId) {
       throw new Error("Invalid QuarterlyCheckin: missing required fields");
+    }
+    // Enforce temporal window based on user's locale
+    const now = new Date();
+    if (!isWithinQuarter(now)) {
+      throw new Error("Check‑in submissions are only allowed during the active quarterly window.");
     }
     await runWithRetry(() => setDoc(doc(db, "checkins", checkin.id), checkin));
   },

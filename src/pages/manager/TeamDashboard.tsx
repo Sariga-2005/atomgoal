@@ -4,6 +4,7 @@ import { useToast } from "@/context/ToastContext";
 import { goalService, auditService } from "@/services";
 import { Goal, QuarterlyCheckin, User } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { computeProgressScore, getScoreColor } from "@/lib/progress";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -442,7 +443,16 @@ export default function TeamDashboard() {
                               {editingGoal === goal.id ? (
                                 <Input className="h-8 w-24 text-xs font-bold" value={editTarget} onChange={e => setEditTarget(e.target.value)} />
                               ) : (
-                                <>{goal.target} {goal.unit}</>
+                                <>
+                                  {goal.target} {goal.unit}
+                                  {goal.achievement && (() => {
+                                    const score = computeProgressScore(goal.unit as any, goal.achievement, goal.target, { direction: (goal as any).scoringDirection as any });
+                                    const colors = getScoreColor(score);
+                                    return (
+                                      <span className={`ml-2 text-xs font-bold px-2 py-0.5 rounded ${colors.bg} ${colors.text} border ${colors.border}`}>Score {score}%</span>
+                                    );
+                                  })()}
+                                </>
                               )}
                             </td>
                             <td className="py-4 text-center font-bold text-slate-800">
