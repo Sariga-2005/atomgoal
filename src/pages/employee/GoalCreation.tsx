@@ -67,7 +67,9 @@ export default function GoalCreation() {
 
   const isLocked = goals.some(g => g.status === "Pending Approval" || g.status === "Approved");
   const isRejected = goals.some(g => g.status === "Rejected");
-  const totalWeightage = goals.reduce((s, g) => s + (Number(g.weightage) || 0), 0);
+  const totalWeightage = goals
+    .filter(g => g.status !== "Rejected")
+    .reduce((s, g) => s + (Number(g.weightage) || 0), 0);
   const remainingWeightage = Math.max(0, 100 - totalWeightage);
 
   // Overall Goal Sheet Status mapping
