@@ -27,6 +27,7 @@ export interface Goal {
   weightage: number; // Percentage 10-100
   status: GoalStatus;
   isShared: boolean;
+  sharedGoalId?: string;
   locked: boolean;
   achievement: string; // The current achieved value
   progressStatus: ProgressStatus;
@@ -59,6 +60,9 @@ export interface SharedGoal {
   unit: UnitOfMeasurement;
   target: string;
   createdAt: number;
+  ownerId?: string;
+  achievement?: string;
+  progressStatus?: ProgressStatus;
 }
 
 export interface AuditLog {

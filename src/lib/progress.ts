@@ -57,6 +57,18 @@ export function getScoreColor(score: number) {
 
 /** Determine current active phase/quarter based on month */
 export function getCurrentActiveWindow() {
+  try {
+    const overridePhase = localStorage.getItem("admin_override_phase");
+    if (overridePhase) {
+      const overrideQuarter = localStorage.getItem("admin_override_quarter");
+      return {
+        phase: overridePhase,
+        quarter: overrideQuarter === "null" || !overrideQuarter ? null : overrideQuarter,
+        isOpen: overridePhase !== "Closed"
+      };
+    }
+  } catch(e) {}
+
   const now = new Date();
   const month = now.getMonth() + 1; // 1-12
   // Phase definitions (adjusted to requirements)

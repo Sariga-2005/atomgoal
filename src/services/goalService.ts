@@ -1,7 +1,7 @@
 import { Goal, QuarterlyCheckin, SharedGoal } from "@/types";
-import { isWithinQuarter } from "@/lib/temporal";
+import { isCheckinAllowed } from "@/lib/temporal";
 import { db, runWithRetry } from "@/lib/firebase";
-import { collection, doc, getDocs, setDoc, query, where, writeBatch, deleteDoc } from "firebase/firestore";
+import { collection, doc, getDocs, getDoc, setDoc, query, where, writeBatch, deleteDoc } from "firebase/firestore";
 
 // ─── Seed data (written to Firestore on first run only) ───────────────────────
 const SEED_GOALS: Goal[] = [
@@ -197,11 +197,38 @@ export const goalService = {
       throw new Error("Invalid QuarterlyCheckin: missing required fields");
     }
     // Enforce temporal window based on user's locale
-    const now = new Date();
-    if (!isWithinQuarter(now)) {
+    if (!isCheckinAllowed(checkin.quarter)) {
       throw new Error("Check‑in submissions are only allowed during the active quarterly window.");
     }
     await runWithRetry(() => setDoc(doc(db, "checkins", checkin.id), checkin));
+
+    // Sync Shared Goals if applicable
+    const goalDoc = await runWithRetry(() => getDoc(doc(db, "goals", checkin.goalId)));
+    if (goalDoc.exists()) {
+      const goal = goalDoc.data() as Goal;
+      if (goal.isShared && goal.sharedGoalId) {
+        const sgDoc = await runWithRetry(() => getDoc(doc(db, "shared_goals", goal.sharedGoalId!)));
+        if (sgDoc.exists()) {
+          const sg = sgDoc.data() as SharedGoal;
+          if (sg.ownerId === checkin.userId) {
+            sg.achievement = checkin.achievement;
+            sg.progressStatus = checkin.progressStatus;
+            await runWithRetry(() => setDoc(doc(db, "shared_goals", sg.id), sg));
+            
+            const linkedGoalsSnap = await runWithRetry(() => getDocs(query(collection(db, "goals"), where("sharedGoalId", "==", sg.id))));
+            const batch = writeBatch(db);
+            linkedGoalsSnap.docs.forEach(d => {
+              const lg = d.data() as Goal;
+              lg.achievement = checkin.achievement;
+              lg.progressStatus = checkin.progressStatus;
+              lg.updatedAt = Date.now();
+              batch.set(doc(db, "goals", lg.id), lg);
+            });
+            await runWithRetry(() => batch.commit());
+          }
+        }
+      }
+    }
   },
 
   async getSharedGoals(department?: string): Promise<SharedGoal[]> {

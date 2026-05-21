@@ -1,18 +1,25 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router";
+import { Link } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
+import { useToast } from "@/context/ToastContext";
 import { goalService, auditService } from "@/services";
 import { Goal, AuditLog } from "@/types";
+import { useAnalyticsData } from "@/lib/useAnalyticsData";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
 import { Users, Target, CheckCircle2, Clock, BarChart3, Settings, Share2, ArrowRight } from "lucide-react";
 
 export default function AdminDashboard() {
   const { allUsers } = useAuth();
+  const { toast } = useToast();
   const [goals, setGoals] = useState<Goal[]>([]);
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [unlockGoalId, setUnlockGoalId] = useState("");
+  const analytics = useAnalyticsData();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -31,6 +38,19 @@ export default function AdminDashboard() {
     };
     fetchData();
   }, []);
+
+  const handleUnlockGoal = async () => {
+    if (!unlockGoalId.trim()) return;
+    const goal = goals.find(g => g.id === unlockGoalId.trim());
+    if (!goal) {
+      toast("Goal not found", "error");
+      return;
+    }
+    await goalService.saveGoal({ ...goal, locked: false, status: "Draft" });
+    toast("Goal Unlocked", "success");
+    setUnlockGoalId("");
+    setTimeout(() => window.location.reload(), 1500);
+  };
 
   const employees = allUsers.filter(u => u.role === "employee");
   const totalGoals = goals.length;
@@ -98,6 +118,89 @@ export default function AdminDashboard() {
           <p className="text-xs text-muted-foreground mt-2">{completed} of {totalGoals} goals completed</p>
         </CardContent>
       </Card>
+
+      {/* Check-in Completion Progress */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-medium">Check-in Completion Rates by Quarter</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {analytics.managerEffectiveness.map(q => (
+              <div key={q.quarter} className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-medium text-slate-500">{q.quarter} Check-ins</span>
+                  <span className="text-xs font-bold text-slate-700">{q.completionRate}%</span>
+                </div>
+                <Progress value={q.completionRate} className="h-2" />
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="grid md:grid-cols-2 gap-4">
+        {/* Cycle Configuration */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium">Cycle Configuration</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col gap-2">
+              <label className="text-xs text-muted-foreground">Override Active Phase</label>
+              <Select
+                value={localStorage.getItem("admin_override_phase") === "Checkin" ? localStorage.getItem("admin_override_quarter") || "Default" : localStorage.getItem("admin_override_phase") || "Default"}
+                onChange={e => {
+                  const val = e.target.value;
+                  if (val === "Default") {
+                    localStorage.removeItem("admin_override_phase");
+                    localStorage.removeItem("admin_override_quarter");
+                  } else if (val === "GoalSetting" || val === "Closed") {
+                    localStorage.setItem("admin_override_phase", val);
+                    localStorage.setItem("admin_override_quarter", "null");
+                  } else {
+                    localStorage.setItem("admin_override_phase", "Checkin");
+                    localStorage.setItem("admin_override_quarter", val);
+                  }
+                  window.location.reload();
+                }}
+                className="h-10 border-slate-200 bg-slate-50 text-slate-800 rounded-xl text-xs w-full"
+              >
+                <option value="Default">Default (Date based)</option>
+                <option value="GoalSetting">Goal Setting Open</option>
+                <option value="Q1">Q1 Check-in Open</option>
+                <option value="Q2">Q2 Check-in Open</option>
+                <option value="Q3">Q3 Check-in Open</option>
+                <option value="Q4">Q4 Check-in Open</option>
+                <option value="Closed">Cycle Closed</option>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Specific Goal Unlock */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium">Unlock Specific Goal</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col gap-2">
+              <label className="text-xs text-muted-foreground">Goal ID</label>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Enter Goal ID"
+                  value={unlockGoalId}
+                  onChange={e => setUnlockGoalId(e.target.value)}
+                  className="text-xs"
+                />
+                <Button onClick={handleUnlockGoal} className="text-xs px-4" disabled={!unlockGoalId.trim()}>
+                  Unlock
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Quick Links */}
       <div className="grid md:grid-cols-3 gap-4">

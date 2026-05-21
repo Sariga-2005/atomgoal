@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
 import { goalService, auditService } from "@/services";
-import { Goal, UnitOfMeasurement } from "@/types";
+import { Goal, UnitOfMeasurement, SharedGoal } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,6 +25,7 @@ function emptyGoal(userId: string, managerId: string): Goal {
     userId, managerId,
     thrustArea: "", title: "", description: "",
     unit: "%" as UnitOfMeasurement,
+    scoringDirection: "min",
     target: "", weightage: 10,
     status: "Draft", isShared: false, locked: false,
     achievement: "", progressStatus: "Not Started",
@@ -36,6 +37,7 @@ export default function GoalCreation() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [goals, setGoals] = useState<Goal[]>([]);
+  const [sharedGoals, setSharedGoals] = useState<SharedGoal[]>([]);
   const [confirmSubmit, setConfirmSubmit] = useState(false);
   const [loading, setLoading] = useState(true);
   const goalWindowOpen = isGoalCreationAllowed();
@@ -50,12 +52,16 @@ export default function GoalCreation() {
     if (!user) return;
     const fetchExisting = async () => {
       try {
-        const existing = await goalService.getGoals(user.id);
+        const [existing, sGoals] = await Promise.all([
+          goalService.getGoals(user.id),
+          goalService.getSharedGoals(user.department)
+        ]);
         if (existing.length > 0) {
           setGoals(existing);
         } else {
           setGoals([emptyGoal(user.id, user.managerId || "")]);
         }
+        setSharedGoals(sGoals);
       } catch (e) {
         console.error(e);
       } finally {
@@ -268,7 +274,11 @@ export default function GoalCreation() {
 
   const handleEditRejected = (goalId: string, index: number) => {
     startEditing(goalId);
-    updateGoalField(index, "status", "Draft");
+    setGoals(prev => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], status: "Draft", weightage: 0, updatedAt: Date.now() };
+      return updated;
+    });
   };
 
   return (
@@ -512,7 +522,7 @@ export default function GoalCreation() {
                           />
                         </div>
 
-                        <div className="grid grid-cols-3 gap-4">
+                        <div className="grid grid-cols-4 gap-4">
                           <div className="space-y-1.5 text-left">
                             <Label className="text-xs font-bold text-slate-700">Unit</Label>
                             <Select
@@ -524,6 +534,17 @@ export default function GoalCreation() {
                               <option value="Numeric">Numeric</option>
                               <option value="Timeline">Timeline</option>
                               <option value="Zero-based">Zero-based</option>
+                            </Select>
+                          </div>
+                          <div className="space-y-1.5 text-left">
+                            <Label className="text-xs font-bold text-slate-700">Direction</Label>
+                            <Select
+                              value={goal.scoringDirection || "min"}
+                              onChange={e => updateGoalField(index, "scoringDirection", e.target.value as "min" | "max")}
+                              className="h-10 rounded-lg text-xs font-semibold bg-white"
+                            >
+                              <option value="max">Maximize</option>
+                              <option value="min">Minimize</option>
                             </Select>
                           </div>
                           <div className="space-y-1.5 text-left">
@@ -553,6 +574,37 @@ export default function GoalCreation() {
                               <p className="text-[10px] text-red-500 font-semibold mt-0.5">Min 10%</p>
                             )}
                           </div>
+                        </div>
+
+                        <div className="space-y-1.5 text-left">
+                          <Label className="text-xs font-bold text-slate-700 flex items-center gap-2 cursor-pointer">
+                            <input 
+                              type="checkbox" 
+                              checked={goal.isShared} 
+                              onChange={e => updateGoalField(index, "isShared", e.target.checked)} 
+                            /> 
+                            Link to Shared Department Goal
+                          </Label>
+                          {goal.isShared && (
+                            <Select
+                              value={goal.sharedGoalId || ""}
+                              onChange={e => {
+                                const sgId = e.target.value;
+                                updateGoalField(index, "sharedGoalId", sgId);
+                                const sg = sharedGoals.find(s => s.id === sgId);
+                                if (sg) {
+                                  updateGoalField(index, "target", sg.target);
+                                  updateGoalField(index, "unit", sg.unit);
+                                }
+                              }}
+                              className="h-10 rounded-lg text-xs font-semibold bg-white w-full mt-2"
+                            >
+                              <option value="">-- Select a Shared Goal --</option>
+                              {sharedGoals.map(sg => (
+                                <option key={sg.id} value={sg.id}>{sg.title} ({sg.target} {sg.unit})</option>
+                              ))}
+                            </Select>
+                          )}
                         </div>
 
                         <div className="flex justify-end gap-3 pt-3 border-t border-slate-100">

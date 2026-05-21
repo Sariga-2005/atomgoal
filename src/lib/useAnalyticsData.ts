@@ -42,13 +42,29 @@ export function useAnalyticsData(): AnalyticsData {
         const fetchedGoals = goalsSnap.docs.map(doc => doc.data() as Goal);
         setGoals(fetchedGoals);
 
-        // Fetch Checkins
-        const checkinsSnap = await getDocs(collection(db, "checkins"));
-        // Filter checkins client-side to only those matching our fetched goals
-        const goalIds = new Set(fetchedGoals.map(g => g.id));
-        const fetchedCheckins = checkinsSnap.docs
-          .map(doc => doc.data() as QuarterlyCheckin)
-          .filter(c => goalIds.has(c.goalId));
+        // Fetch Checkins using batched queries (max 30 elements in 'in' clause)
+        const goalIdArray = Array.from(new Set(fetchedGoals.map(g => g.id)));
+        let fetchedCheckins: QuarterlyCheckin[] = [];
+        
+        if (goalIdArray.length > 0) {
+          const chunks: string[][] = [];
+          for (let i = 0; i < goalIdArray.length; i += 30) {
+            chunks.push(goalIdArray.slice(i, i + 30));
+          }
+
+          const checkinPromises = chunks.map(chunk => {
+            const q = query(collection(db, "checkins"), where("goalId", "in", chunk));
+            return getDocs(q);
+          });
+
+          const snaps = await Promise.all(checkinPromises);
+          snaps.forEach(snap => {
+            snap.docs.forEach(doc => {
+              fetchedCheckins.push(doc.data() as QuarterlyCheckin);
+            });
+          });
+        }
+        
         setCheckins(fetchedCheckins);
 
         // Fetch Users

@@ -92,6 +92,8 @@ export default function TeamDashboard() {
     
     const updated: Goal = {
       ...goal,
+      target: editTarget || goal.target,
+      weightage: editWeightage || goal.weightage,
       status: "Approved",
       locked: true,
       managerComments: goalFeedback.trim() || goal.managerComments || "Goal sheet approved."
@@ -570,7 +572,11 @@ export default function TeamDashboard() {
                               ) : goal.status === "Pending Approval" ? (
                                 <div className="flex justify-end gap-1.5">
                                   <button
-                                    onClick={() => setConfirmGoalAction({ type: "approve", goalId: goal.id })}
+                                    onClick={() => {
+                                      setConfirmGoalAction({ type: "approve", goalId: goal.id });
+                                      setEditTarget(goal.target);
+                                      setEditWeightage(goal.weightage);
+                                    }}
                                     className="inline-flex items-center justify-center w-7 h-7 bg-emerald-50 hover:bg-emerald-100/80 text-emerald-600 rounded-lg border border-emerald-200 cursor-pointer transition-all"
                                     title="Sign Off / Approve Goal"
                                   >
@@ -739,6 +745,19 @@ export default function TeamDashboard() {
                 <p className="text-xs text-slate-500">Specify audit log feedback to guide the employee.</p>
               </div>
             </div>
+
+            {confirmGoalAction.type === "approve" && (
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Target</label>
+                  <Input value={editTarget} onChange={e => setEditTarget(e.target.value)} className="h-9 text-xs" />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Weightage (%)</label>
+                  <Input type="number" value={editWeightage} onChange={e => setEditWeightage(parseInt(e.target.value) || 0)} className="h-9 text-xs" />
+                </div>
+              </div>
+            )}
 
             <div className="space-y-1.5">
               <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
