@@ -259,6 +259,11 @@ export default function GoalCreation() {
     );
   }
 
+  const handleEditRejected = (goalId: string, index: number) => {
+    startEditing(goalId);
+    updateGoalField(index, "status", "Draft");
+  };
+
   return (
     <div className="space-y-8 animate-slide-in pb-24">
       {/* ── Window Enforcement Banner ── */}
@@ -358,14 +363,14 @@ export default function GoalCreation() {
         <div>
           <Button
             onClick={addGoal}
-            disabled={isLocked || goals.length >= 8}
+            disabled={goals.length >= 8 || remainingWeightage === 0}
             className={`gap-2 font-bold shadow-md hover:shadow-lg transition-all h-11 px-5 rounded-xl text-xs uppercase tracking-wider ${
-              isLocked
+              goals.length >= 8 || remainingWeightage === 0
                 ? "bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed shadow-none"
                 : "bg-blue-600 hover:bg-blue-700 text-white shadow-blue-500/10 cursor-pointer"
             }`}
           >
-            {isLocked ? <Lock className="w-4 h-4 text-slate-400" /> : <Plus className="w-4 h-4 text-white" />}
+            {goals.length >= 8 || remainingWeightage === 0 ? <Lock className="w-4 h-4 text-slate-400" /> : <Plus className="w-4 h-4 text-white" />}
             + Add New Goal
           </Button>
         </div>
@@ -598,6 +603,16 @@ export default function GoalCreation() {
                               {goal.status === "Rejected" && <AlertTriangle className="w-3 h-3 text-red-600" />}
                               {goal.status}
                             </Badge>
+                            {goal.status === "Rejected" && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleEditRejected(goal.id, index)}
+                                className="h-6 px-2.5 ml-2 text-[10px] font-bold uppercase tracking-wider text-slate-600 hover:text-blue-700 border-slate-200 cursor-pointer"
+                              >
+                                <Edit2 className="w-3 h-3 mr-1" /> Edit & Resubmit
+                              </Button>
+                            )}
                           </div>
                         </div>
 
